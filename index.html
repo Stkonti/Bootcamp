@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LANIEN ALKUUN</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@600;700&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    /* ── YouTube background ── */
+    #yt-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    #yt-bg iframe {
+      position: absolute;
+      /* Over-size to cover any aspect ratio */
+      width: 200vw;
+      height: 200vh;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: none;
+    }
+
+    /* Dark + colour overlay */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(
+        160deg,
+        rgba(0, 0, 0, 0.72) 0%,
+        rgba(10, 10, 30, 0.68) 50%,
+        rgba(0, 0, 0, 0.78) 100%
+      );
+      backdrop-filter: brightness(0.9) saturate(1.4);
+    }
+
+    /* ── Main content ── */
+    #content {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+    }
+
+    /* Title */
+    .main-title {
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: clamp(3rem, 10vw, 9rem);
+      letter-spacing: 0.12em;
+      color: #fff;
+      text-shadow:
+        0 0 20px rgba(255, 170, 0, 0.9),
+        0 0 60px rgba(255, 100, 0, 0.6),
+        0 4px 8px rgba(0, 0, 0, 0.9);
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    /* Sub-label */
+    .sub-label {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: clamp(0.9rem, 2.5vw, 1.5rem);
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      color: rgba(255, 200, 80, 0.85);
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(255, 160, 0, 0.7);
+      margin-top: -1.2rem;
+      user-select: none;
+    }
+
+    /* Countdown wrapper */
+    .countdown {
+      display: flex;
+      gap: clamp(0.8rem, 3vw, 2.5rem);
+      align-items: flex-end;
+    }
+
+    .cd-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .cd-number {
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: clamp(3.5rem, 11vw, 10rem);
+      line-height: 1;
+      color: #fff;
+      background: linear-gradient(175deg, #ffffff 0%, #c8d0ff 60%, #7090ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 18px rgba(80, 130, 255, 0.8));
+      min-width: 2ch;
+      text-align: center;
+      transition: transform 0.08s ease;
+      user-select: none;
+    }
+
+    .cd-number.tick {
+      transform: scale(1.06);
+    }
+
+    .cd-label {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: clamp(0.65rem, 1.8vw, 1rem);
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(180, 200, 255, 0.7);
+      user-select: none;
+    }
+
+    /* Separator colon */
+    .cd-sep {
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: clamp(3rem, 9vw, 8rem);
+      line-height: 1;
+      color: rgba(255, 170, 50, 0.6);
+      padding-bottom: 0.5rem;
+      user-select: none;
+      animation: blink 1s step-start infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.15; }
+    }
+
+    /* Finished state */
+    .finished {
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: clamp(2rem, 7vw, 5rem);
+      color: #ffcc00;
+      text-shadow:
+        0 0 30px rgba(255, 200, 0, 1),
+        0 0 80px rgba(255, 120, 0, 0.7);
+      letter-spacing: 0.1em;
+      text-align: center;
+      animation: pulse 0.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.04); }
+    }
+
+    /* Date hint */
+    .date-hint {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: clamp(0.75rem, 2vw, 1.1rem);
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      color: rgba(200, 210, 255, 0.45);
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    /* Scanline glitch effect */
+    #overlay::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.04) 2px,
+        rgba(0, 0, 0, 0.04) 4px
+      );
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- YouTube background -->
+  <div id="yt-bg">
+    <iframe
+      id="yt-iframe"
+      src="https://www.youtube.com/embed/jidLL9rE90M?autoplay=1&mute=1&loop=1&playlist=jidLL9rE90M&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0&playsinline=1&enablejsapi=1"
+      allow="autoplay; encrypted-media"
+      allowfullscreen
+    ></iframe>
+  </div>
+
+  <div id="overlay"></div>
+
+  <!-- Main content -->
+  <div id="content">
+    <div class="main-title">LANIEN ALKUUN</div>
+    <div class="sub-label">Vappu 2026 &nbsp;·&nbsp; CS2 LAN</div>
+
+    <div class="countdown" id="countdown">
+      <!-- Injected by JS -->
+    </div>
+
+    <div class="date-hint" id="date-hint">1. toukokuuta 2026 &nbsp;·&nbsp; klo 11:00 Suomen aikaa</div>
+  </div>
+
+  <script>
+    // Target: Friday May 1 2026 at 11:00 EEST (UTC+3)
+    const TARGET = new Date('2026-05-01T08:00:00Z'); // 11:00 EEST = 08:00 UTC
+
+    const cdEl   = document.getElementById('countdown');
+    const hintEl = document.getElementById('date-hint');
+
+    function pad(n) {
+      return String(Math.max(0, n)).padStart(2, '0');
+    }
+
+    function tick(el) {
+      el.classList.remove('tick');
+      // Force reflow so the animation re-triggers
+      void el.offsetWidth;
+      el.classList.add('tick');
+      setTimeout(() => el.classList.remove('tick'), 80);
+    }
+
+    let prevValues = {};
+
+    function update() {
+      const now  = Date.now();
+      const diff = TARGET.getTime() - now;
+
+      if (diff <= 0) {
+        cdEl.innerHTML = '';
+        hintEl.textContent = '';
+        const fin = document.createElement('div');
+        fin.className = 'finished';
+        fin.textContent = 'LANI ON ALKANUT! 🎉';
+        cdEl.appendChild(fin);
+        return;
+      }
+
+      const days  = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins  = Math.floor((diff % 3600000)  / 60000);
+      const secs  = Math.floor((diff % 60000)     / 1000);
+
+      const parts = [
+        { id: 'cd-days',  val: pad(days),  label: days === 1 ? 'Päivä' : 'Päivää' },
+        { sep: true },
+        { id: 'cd-hours', val: pad(hours), label: 'Tuntia' },
+        { sep: true },
+        { id: 'cd-mins',  val: pad(mins),  label: 'Minuuttia' },
+        { sep: true },
+        { id: 'cd-secs',  val: pad(secs),  label: 'Sekuntia' },
+      ];
+
+      // Build DOM only once, then update values
+      if (!cdEl.querySelector('.cd-block')) {
+        cdEl.innerHTML = '';
+        parts.forEach(p => {
+          if (p.sep) {
+            const s = document.createElement('span');
+            s.className = 'cd-sep';
+            s.textContent = ':';
+            cdEl.appendChild(s);
+          } else {
+            const block = document.createElement('div');
+            block.className = 'cd-block';
+
+            const num = document.createElement('div');
+            num.className = 'cd-number';
+            num.id = p.id;
+            num.textContent = p.val;
+
+            const lbl = document.createElement('div');
+            lbl.className = 'cd-label';
+            lbl.id = p.id + '-lbl';
+            lbl.textContent = p.label;
+
+            block.appendChild(num);
+            block.appendChild(lbl);
+            cdEl.appendChild(block);
+          }
+        });
+      } else {
+        parts.filter(p => !p.sep).forEach(p => {
+          const el  = document.getElementById(p.id);
+          const lbl = document.getElementById(p.id + '-lbl');
+          if (el && el.textContent !== p.val) {
+            el.textContent = p.val;
+            tick(el);
+          }
+          if (lbl) lbl.textContent = p.label;
+        });
+      }
+    }
+
+    update();
+    setInterval(update, 1000);
+  </script>
+</body>
+</html>
