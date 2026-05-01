@@ -537,6 +537,87 @@
       );
       pointer-events: none;
     }
+
+    /* ── Player stats table ── */
+    .player-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .player-table {
+      width: 100%; min-width: 440px; border-collapse: collapse;
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+    }
+    .player-table th {
+      font-size: 0.68rem; letter-spacing: 0.13em; text-transform: uppercase;
+      color: rgba(150, 200, 255, 0.6); padding: 0.28rem 0.5rem;
+      border-bottom: 1px solid rgba(120, 180, 255, 0.22);
+      text-align: left; font-weight: 700; white-space: nowrap;
+    }
+    .player-table td {
+      padding: 0.44rem 0.5rem; vertical-align: middle;
+      border-bottom: 1px solid rgba(120, 180, 255, 0.07); white-space: nowrap;
+    }
+    .player-table tbody tr:hover td { background: rgba(72, 140, 255, 0.06); }
+    .player-rank {
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: 0.88rem; color: rgba(150, 200, 255, 0.38);
+    }
+    .player-rank.r1 { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.55); }
+    .player-rank.r2 { color: #b8b8b8; }
+    .player-rank.r3 { color: #cd7f32; }
+    .player-nick { font-weight: 700; color: var(--text-main); font-size: 0.96rem; }
+    .kd-value {
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: 1.08rem; letter-spacing: 0.04em;
+    }
+    .kd-good { color: #35d07f; text-shadow: 0 0 8px rgba(53,208,127,0.5); }
+    .kd-ok   { color: #ffb347; }
+    .kd-bad  { color: #ff6b6b; }
+    .kda-sub { font-size: 0.68rem; color: rgba(200,220,255,0.42); margin-top: 1px; }
+    .stat-cell { font-size: 0.88rem; font-weight: 600; color: var(--text-muted); }
+    .adr-bar-wrap {
+      width: 46px; height: 3px; background: rgba(120,180,255,0.14);
+      border-radius: 4px; overflow: hidden; margin-top: 3px;
+    }
+    .adr-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3ea4ff, #72c4ff);
+      border-radius: 4px;
+    }
+
+    /* ── Aggregate board ── */
+    .agg-board {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.55rem;
+      margin-top: 0.6rem;
+    }
+    .agg-stat-block {
+      background: rgba(8,16,36,0.6);
+      border: 1px solid rgba(120,180,255,0.13);
+      border-radius: 10px; padding: 0.5rem 0.6rem;
+    }
+    .agg-stat-title {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: 0.66rem; letter-spacing: 0.15em; text-transform: uppercase;
+      color: rgba(150,200,255,0.58); font-weight: 700; margin-bottom: 0.42rem;
+    }
+    .agg-bar-row {
+      display: flex; align-items: center; gap: 0.28rem; margin-bottom: 0.26rem;
+    }
+    .agg-bar-name {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: 0.76rem; font-weight: 700; color: rgba(210,226,255,0.68);
+      width: 68px; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .agg-bar-track {
+      flex: 1; height: 5px; background: rgba(120,180,255,0.1);
+      border-radius: 4px; overflow: hidden;
+    }
+    .agg-bar-fill { height: 100%; border-radius: 4px; }
+    .agg-bar-num {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: 0.73rem; font-weight: 700; color: var(--text-main);
+      min-width: 28px; text-align: right; flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -1037,26 +1118,66 @@
       return buildTopPlayersForFaction(matchDetails, statsPayload, enemyFactionId(matchDetails));
     }
 
-    function topPlayerLine(player) {
-      return player.nickname +
-        ' · K/D ' + player.kd.toFixed(2) +
-        ' (' + player.kills + '/' + player.deaths + ')' +
-        ' · K/R ' + (player.kr ? player.kr.toFixed(2) : '-') +
-        ' · ADR ' + (player.adr ? player.adr.toFixed(1) : '-') +
-        ' · Enemy Flashes ' + player.enemyFlashes +
-        ' · Round Swing ' + (player.roundSwing ? String(player.roundSwing) : '-') +
-        ' · A ' + player.assists +
-        (player.hsPercent ? ' · HS% ' + player.hsPercent : '');
-    }
-
     function topPlayerListHtml(players) {
       if (!players.length) {
         return '<div class="muted">Ei pelaajakohtaista round-dataa tassa ottelussa.</div>';
       }
 
-      return '<ul class="analysis-list">' + players.map(function (p) {
-        return '<li>' + escapeHtml(topPlayerLine(p)) + '</li>';
-      }).join('') + '</ul>';
+      var maxAdr = players.reduce(function (m, p) { return Math.max(m, p.adr); }, 0) || 1;
+      function kdClass(kd) {
+        return kd >= 1.2 ? 'kd-good' : kd >= 0.9 ? 'kd-ok' : 'kd-bad';
+      }
+      var ranks = ['#1', '#2', '#3', '#4', '#5'];
+      var rankCls = ['r1', 'r2', 'r3', 'r4', 'r5'];
+      var rows = players.map(function (p, i) {
+        var bar = Math.round((p.adr / maxAdr) * 100);
+        return '<tr>' +
+          '<td class="player-rank ' + rankCls[i] + '">' + ranks[i] + '</td>' +
+          '<td class="player-nick">' + escapeHtml(p.nickname) + '</td>' +
+          '<td><span class="kd-value ' + kdClass(p.kd) + '">' + p.kd.toFixed(2) + '</span>' +
+            '<div class="kda-sub">' + p.kills + '/' + p.deaths + '/' + p.assists + '</div></td>' +
+          '<td class="stat-cell">' + (p.kr ? p.kr.toFixed(2) : '–') + '</td>' +
+          '<td class="stat-cell"><div>' + (p.adr ? p.adr.toFixed(1) : '–') + '</div>' +
+            '<div class="adr-bar-wrap"><div class="adr-bar-fill" style="width:' + bar + '%"></div></div></td>' +
+          '<td class="stat-cell">' + (p.hsPercent ? p.hsPercent + '%' : '–') + '</td>' +
+          '<td class="stat-cell">' + p.enemyFlashes + '</td>' +
+          '</tr>';
+      }).join('');
+      return '<div class="player-table-wrap"><table class="player-table">' +
+        '<thead><tr>' +
+          '<th>#</th><th>Pelaaja</th><th>K/D</th><th>K/R</th><th>ADR</th><th>HS%</th><th>EF</th>' +
+        '</tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+        '</table></div>';
+    }
+
+    function topPlayerAggregateHtml(players) {
+      if (!players.length) { return ''; }
+      var statDefs = [
+        { key: 'kills',        label: 'Kills',         color: '#72c4ff', fmt: function (v) { return String(v); },    get: function (p) { return p.kills; } },
+        { key: 'kd',           label: 'K/D',           color: '#35d07f', fmt: function (v) { return v.toFixed(2); }, get: function (p) { return p.kd; } },
+        { key: 'adr',          label: 'ADR',           color: '#3ea4ff', fmt: function (v) { return v.toFixed(1); }, get: function (p) { return p.adr; } },
+        { key: 'kr',           label: 'K/R',           color: '#a78bfa', fmt: function (v) { return v.toFixed(2); }, get: function (p) { return p.kr; } },
+        { key: 'hsPercent',    label: 'HS%',           color: '#fb923c', fmt: function (v) { return v + '%'; },      get: function (p) { return p.hsPercent ? parseNumber(p.hsPercent) : 0; } },
+        { key: 'enemyFlashes', label: 'Enemy Flashes', color: '#ffb347', fmt: function (v) { return String(v); },    get: function (p) { return p.enemyFlashes; } },
+        { key: 'roundSwing',   label: 'Round Swing',   color: '#f472b6', fmt: function (v) { return String(v); },    get: function (p) { return p.roundSwing; } }
+      ];
+      var blocks = statDefs.map(function (stat) {
+        var vals = players.map(stat.get);
+        var maxVal = vals.reduce(function (m, v) { return Math.max(m, v); }, 0) || 1;
+        var bars = players.map(function (p, i) {
+          var val = vals[i];
+          var pct = Math.round((val / maxVal) * 100);
+          return '<div class="agg-bar-row">' +
+            '<div class="agg-bar-name">' + escapeHtml(p.nickname) + '</div>' +
+            '<div class="agg-bar-track"><div class="agg-bar-fill" style="width:' + pct + '%;background:' + stat.color + '"></div></div>' +
+            '<div class="agg-bar-num">' + stat.fmt(val) + '</div>' +
+            '</div>';
+        }).join('');
+        return '<div class="agg-stat-block"><div class="agg-stat-title">' + stat.label + '</div>' + bars + '</div>';
+      }).join('');
+      return '<section class="detail-section"><h3>Tiimin Kokonaissuoritus</h3>' +
+        '<div class="agg-board">' + blocks + '</div></section>';
     }
 
     function analysisLines(matchDetails, statsPayload) {
@@ -1123,24 +1244,25 @@
       const enemyTeam = teamFromFaction(details, enemyFaction) || {};
       const score1 = factionScore(details, 'faction1');
       const score2 = factionScore(details, 'faction2');
-      const analyses = analysisLines(details, stats);
       const ownTopPlayers = buildOwnTeamTopPlayers(details, stats);
       const enemyTopPlayers = buildEnemyTeamTopPlayers(details, stats);
       const faceitUrl = buildFaceitUrl(details);
       const viewMode = state.topPlayerViewMode;
 
+      const activePlayers = viewMode === 'enemy' ? enemyTopPlayers : ownTopPlayers;
       const topPlayersSection = viewMode === 'both'
         ? '' +
           '<section class="detail-section"><h3>Top Pelaajat · Molemmat Tiimit</h3>' +
             '<div class="split">' +
-              '<section class="detail-section"><h3>' + escapeHtml((ownTeam.name || 'Oma tiimi') + ' (Own)') + '</h3>' + topPlayerListHtml(ownTopPlayers) + '</section>' +
-              '<section class="detail-section"><h3>' + escapeHtml((enemyTeam.name || 'Enemy') + ' (Enemy)') + '</h3>' + topPlayerListHtml(enemyTopPlayers) + '</section>' +
+              '<section class="detail-section"><h3>' + escapeHtml((ownTeam.name || 'Oma tiimi') + ' (Own)') + '</h3>' + topPlayerListHtml(ownTopPlayers) + topPlayerAggregateHtml(ownTopPlayers) + '</section>' +
+              '<section class="detail-section"><h3>' + escapeHtml((enemyTeam.name || 'Enemy') + ' (Enemy)') + '</h3>' + topPlayerListHtml(enemyTopPlayers) + topPlayerAggregateHtml(enemyTopPlayers) + '</section>' +
             '</div>' +
           '</section>'
         : '' +
           '<section class="detail-section"><h3>' + escapeHtml(viewMode === 'enemy' ? 'Enemy Team Top Pelaajat' : 'Oman Tiimin Top Pelaajat') + '</h3>' +
-            topPlayerListHtml(viewMode === 'enemy' ? enemyTopPlayers : ownTopPlayers) +
-          '</section>';
+            topPlayerListHtml(activePlayers) +
+          '</section>' +
+          topPlayerAggregateHtml(activePlayers);
 
       elements.matchModalTitle.textContent = (details.competition_name || 'Match') + ' · ' + (details.status || 'unknown');
       elements.matchModalBody.innerHTML = '' +
@@ -1156,9 +1278,6 @@
           '<section class="detail-section"><h3>' + escapeHtml(team1.name || 'Team 1') + '</h3><ul class="player-list">' + rosterList(team1) + '</ul></section>' +
           '<section class="detail-section"><h3>' + escapeHtml(team2.name || 'Team 2') + '</h3><ul class="player-list">' + rosterList(team2) + '</ul></section>' +
         '</div>' +
-        '<section class="detail-section"><h3>Otteluanalyysi</h3><ul class="analysis-list">' +
-          analyses.map(function (line) { return '<li>' + escapeHtml(line) + '</li>'; }).join('') +
-        '</ul></section>' +
         '<section class="detail-section">' +
           '<h3>Nakyma</h3>' +
           '<div class="toggle-row">' +
