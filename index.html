@@ -493,6 +493,26 @@
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     }
 
+    .toggle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-bottom: 0.55rem;
+    }
+
+    .team-toggle-btn {
+      font-size: 0.74rem;
+      padding: 0.35rem 0.56rem;
+      border-color: rgba(146, 201, 255, 0.3);
+      background: rgba(40, 92, 160, 0.22);
+    }
+
+    .team-toggle-btn.active {
+      border-color: rgba(141, 210, 255, 0.78);
+      background: linear-gradient(180deg, rgba(78, 161, 255, 0.5), rgba(47, 103, 176, 0.7));
+      box-shadow: 0 0 16px rgba(91, 175, 255, 0.32);
+    }
+
     @media (max-width: 620px) {
       .score {
         width: 100%;
@@ -607,7 +627,9 @@
       toUnix: Math.floor(Date.now() / 1000) + CONFIG.futureWindowDays * 24 * 60 * 60,
       lastUpdated: '',
       selectedMatchId: '',
-      detailsCache: {}
+      detailsCache: {},
+      selectedMatchBundle: null,
+      topPlayerViewMode: 'own'
     };
 
     function setStatus(text, ok = false) {
@@ -769,6 +791,28 @@
       return Number.isFinite(n) ? n : 0;
     }
 
+    function normalizeStatKey(value) {
+      return String(value == null ? '' : value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+    }
+
+    function getStatValue(stats, candidates) {
+      const source = stats && typeof stats === 'object' ? stats : {};
+      const map = {};
+      Object.keys(source).forEach(function (key) {
+        map[normalizeStatKey(key)] = source[key];
+      });
+
+      for (let i = 0; i < candidates.length; i += 1) {
+        const hit = map[normalizeStatKey(candidates[i])];
+        if (hit !== undefined && hit !== null && hit !== '') {
+          return hit;
+        }
+      }
+      return null;
+    }
+
     function probabilityText(value) {
       const n = parseNumber(value);
       if (!n) {
@@ -822,40 +866,166 @@
       return 'Ei tiedossa';
     }
 
-    function buildTopPlayers(statsPayload) {
+    function ownFactionId(matchDetails) {
+      const teams = matchDetails && matchDetails.teams ? matchDetails.teams : null;
+      if (!teams) {
+        return 'faction1';
+      }
+
+      const targetId = String(state.playerId || '').toLowerCase();
+      const targetNick = String(CONFIG.nickname || '').toLowerCase();
+      const ids = Object.keys(teams);
+
+      for (let i = 0; i < ids.length; i += 1) {
+        const factionId = ids[i];
+        const roster = Array.isArray(teams[factionId] && teams[factionId].roster)
+          ? teams[factionId].roster
+          : [];
+        const match = roster.some(function (player) {
+          const pid = String(player && player.player_id ? player.player_id : '').toLowerCase();
+          const nick = String(player && player.nickname ? player.nickname : '').toLowerCase();
+          return (targetId && pid === targetId) || (targetNick && nick === targetNick);
+        });
+
+        if (match) {
+          return factionId;
+        }
+      }
+
+      return ids[0] || 'faction1';
+    }
+
+    function enemyFactionId(matchDetails) {
+      const teams = matchDetails && matchDetails.teams ? Object.keys(matchDetails.teams) : [];
+      if (!teams.length) {
+        return 'faction2';
+      }
+
+      const ownFaction = ownFactionId(matchDetails);
+      const enemy = teams.find(function (id) {
+        return id !== ownFaction;
+      });
+      return enemy || (ownFaction === 'faction1' ? 'faction2' : 'faction1');
+    }
+
+    function buildTopPlayersForFaction(statsPayload, factionId) {
       if (!statsPayload || !Array.isArray(statsPayload.rounds) || !statsPayload.rounds.length) {
         return [];
       }
 
       const totals = {};
       statsPayload.rounds.forEach(function (round) {
-        const teams = round && round.teams ? Object.values(round.teams) : [];
-        teams.forEach(function (team) {
-          const players = team && Array.isArray(team.players) ? team.players : [];
-          players.forEach(function (player) {
-            const pid = player && (player.player_id || player.nickname || 'unknown');
-            const name = player && player.nickname ? player.nickname : 'unknown';
-            const playerStats = player && player.player_stats ? player.player_stats : {};
-            const kills = parseNumber(playerStats.Kills || playerStats.kills || playerStats.K || 0);
-            const deaths = parseNumber(playerStats.Deaths || playerStats.deaths || playerStats.D || 0);
+        const team = round && round.teams ? round.teams[factionId] : null;
+        const players = team && Array.isArray(team.players) ? team.players : [];
 
-            if (!totals[pid]) {
-              totals[pid] = { nickname: name, kills: 0, deaths: 0 };
-            }
-            totals[pid].kills += kills;
-            totals[pid].deaths += deaths;
-          });
+        players.forEach(function (player) {
+          const playerStats = player && player.player_stats ? player.player_stats : {};
+          const pid = player && (player.player_id || player.nickname || 'unknown');
+          const nickname = player && player.nickname ? player.nickname : 'unknown';
+          const kills = parseNumber(getStatValue(playerStats, ['Kills', 'kills', 'K']));
+          const deaths = parseNumber(getStatValue(playerStats, ['Deaths', 'deaths', 'D']));
+          const assists = parseNumber(getStatValue(playerStats, ['Assists', 'assists', 'A']));
+          const kr = parseNumber(getStatValue(playerStats, ['K/R Ratio', 'K/R', 'KR', 'kills per round']));
+          const adr = parseNumber(getStatValue(playerStats, ['ADR', 'Average Damage per Round', 'Avg Damage Per Round']));
+          const enemyFlashes = parseNumber(getStatValue(playerStats, ['Enemies Flashed', 'Enemy Flashes', 'EnemiesFlashed', 'enemies flashed']));
+          const roundSwing = parseNumber(getStatValue(playerStats, ['Round Swing', 'RoundSwing', 'Round Swings', 'Swing Rounds']));
+          const hsPercentRaw = getStatValue(playerStats, ['Headshots %', 'HS%', 'Headshot %']);
+
+          if (!totals[pid]) {
+            totals[pid] = {
+              nickname: nickname,
+              kills: 0,
+              deaths: 0,
+              assists: 0,
+              krTotal: 0,
+              krCount: 0,
+              adrTotal: 0,
+              adrCount: 0,
+              enemyFlashes: 0,
+              roundSwing: 0,
+              hsPercent: null
+            };
+          }
+
+          totals[pid].kills += kills;
+          totals[pid].deaths += deaths;
+          totals[pid].assists += assists;
+
+          if (kr > 0) {
+            totals[pid].krTotal += kr;
+            totals[pid].krCount += 1;
+          }
+
+          if (adr > 0) {
+            totals[pid].adrTotal += adr;
+            totals[pid].adrCount += 1;
+          }
+
+          totals[pid].enemyFlashes += enemyFlashes;
+          totals[pid].roundSwing += roundSwing;
+
+          if (hsPercentRaw != null && hsPercentRaw !== '') {
+            totals[pid].hsPercent = String(hsPercentRaw);
+          }
         });
       });
 
       return Object.values(totals)
+        .map(function (p) {
+          const kd = p.deaths > 0 ? (p.kills / p.deaths) : p.kills;
+          return {
+            nickname: p.nickname,
+            kills: p.kills,
+            deaths: p.deaths,
+            assists: p.assists,
+            kd: kd,
+            kr: p.krCount ? (p.krTotal / p.krCount) : 0,
+            adr: p.adrCount ? (p.adrTotal / p.adrCount) : 0,
+            enemyFlashes: p.enemyFlashes,
+            roundSwing: p.roundSwing,
+            hsPercent: p.hsPercent
+          };
+        })
         .sort(function (a, b) {
           if (b.kills !== a.kills) {
             return b.kills - a.kills;
           }
+          if (b.kd !== a.kd) {
+            return b.kd - a.kd;
+          }
           return a.deaths - b.deaths;
         })
-        .slice(0, 3);
+        .slice(0, 5);
+    }
+
+    function buildOwnTeamTopPlayers(matchDetails, statsPayload) {
+      return buildTopPlayersForFaction(statsPayload, ownFactionId(matchDetails));
+    }
+
+    function buildEnemyTeamTopPlayers(matchDetails, statsPayload) {
+      return buildTopPlayersForFaction(statsPayload, enemyFactionId(matchDetails));
+    }
+
+    function topPlayerLine(player) {
+      return player.nickname +
+        ' · K/D ' + player.kd.toFixed(2) +
+        ' (' + player.kills + '/' + player.deaths + ')' +
+        ' · K/R ' + (player.kr ? player.kr.toFixed(2) : '-') +
+        ' · ADR ' + (player.adr ? player.adr.toFixed(1) : '-') +
+        ' · Enemy Flashes ' + player.enemyFlashes +
+        ' · Round Swing ' + (player.roundSwing ? String(player.roundSwing) : '-') +
+        ' · A ' + player.assists +
+        (player.hsPercent ? ' · HS% ' + player.hsPercent : '');
+    }
+
+    function topPlayerListHtml(players) {
+      if (!players.length) {
+        return '<div class="muted">Ei pelaajakohtaista round-dataa tassa ottelussa.</div>';
+      }
+
+      return '<ul class="analysis-list">' + players.map(function (p) {
+        return '<li>' + escapeHtml(topPlayerLine(p)) + '</li>';
+      }).join('') + '</ul>';
     }
 
     function analysisLines(matchDetails, statsPayload) {
@@ -877,9 +1047,15 @@
           (team2 && team2.name ? team2.name : 'Team 2') + ' ' + probabilityText(wp2) + '.');
       }
 
-      const top = buildTopPlayers(statsPayload);
+      const ownFaction = ownFactionId(matchDetails);
+      const ownTeam = teamFromFaction(matchDetails, ownFaction);
+      const top = buildOwnTeamTopPlayers(matchDetails, statsPayload);
       if (top.length) {
-        lines.push('Top fragger datajoukosta: ' + top[0].nickname + ' (' + top[0].kills + '/' + top[0].deaths + ').');
+        lines.push('Oman tiimin top fragger: ' + top[0].nickname + ' (K/D ' + top[0].kills + '/' + top[0].deaths + ').');
+        if (top[0].roundSwing > 0) {
+          lines.push('Round swing dataa loytyi: ' + top[0].roundSwing + ' (korkein top-pelaajista).');
+        }
+        lines.push('Top-lista rajattu vain tiimiin: ' + (ownTeam && ownTeam.name ? ownTeam.name : 'oma tiimi') + '.');
       } else {
         lines.push('Pelaajakohtainen ottelustats ei ollut saatavilla tasta ottelusta Data APIssa.');
       }
@@ -910,11 +1086,30 @@
       const stats = bundle.stats;
       const team1 = teamFromFaction(details, 'faction1') || {};
       const team2 = teamFromFaction(details, 'faction2') || {};
+      const ownFaction = ownFactionId(details);
+      const enemyFaction = enemyFactionId(details);
+      const ownTeam = teamFromFaction(details, ownFaction) || {};
+      const enemyTeam = teamFromFaction(details, enemyFaction) || {};
       const score1 = factionScore(details, 'faction1');
       const score2 = factionScore(details, 'faction2');
       const analyses = analysisLines(details, stats);
-      const topPlayers = buildTopPlayers(stats);
+      const ownTopPlayers = buildOwnTeamTopPlayers(details, stats);
+      const enemyTopPlayers = buildEnemyTeamTopPlayers(details, stats);
       const faceitUrl = buildFaceitUrl(details);
+      const viewMode = state.topPlayerViewMode;
+
+      const topPlayersSection = viewMode === 'both'
+        ? '' +
+          '<section class="detail-section"><h3>Top Pelaajat · Molemmat Tiimit</h3>' +
+            '<div class="split">' +
+              '<section class="detail-section"><h3>' + escapeHtml((ownTeam.name || 'Oma tiimi') + ' (Own)') + '</h3>' + topPlayerListHtml(ownTopPlayers) + '</section>' +
+              '<section class="detail-section"><h3>' + escapeHtml((enemyTeam.name || 'Enemy') + ' (Enemy)') + '</h3>' + topPlayerListHtml(enemyTopPlayers) + '</section>' +
+            '</div>' +
+          '</section>'
+        : '' +
+          '<section class="detail-section"><h3>' + escapeHtml(viewMode === 'enemy' ? 'Enemy Team Top Pelaajat' : 'Oman Tiimin Top Pelaajat') + '</h3>' +
+            topPlayerListHtml(viewMode === 'enemy' ? enemyTopPlayers : ownTopPlayers) +
+          '</section>';
 
       elements.matchModalTitle.textContent = (details.competition_name || 'Match') + ' · ' + (details.status || 'unknown');
       elements.matchModalBody.innerHTML = '' +
@@ -924,7 +1119,7 @@
           '<div class="detail-item"><div class="detail-k">Region</div><div class="detail-v">' + escapeHtml(details.region || 'N/A') + '</div></div>' +
           '<div class="detail-item"><div class="detail-k">Map</div><div class="detail-v">' + escapeHtml(mapText(details)) + '</div></div>' +
           '<div class="detail-item"><div class="detail-k">Tulos</div><div class="detail-v">' + escapeHtml(score1 + ' : ' + score2) + '</div></div>' +
-          '<div class="detail-item"><div class="detail-k">Paras 3</div><div class="detail-v">' + escapeHtml(topPlayers.length ? topPlayers.length + ' pelaajaa' : 'Ei saatavilla') + '</div></div>' +
+          '<div class="detail-item"><div class="detail-k">Oma tiimi</div><div class="detail-v">' + escapeHtml(ownTeam.name || 'N/A') + '</div></div>' +
         '</div>' +
         '<div class="split">' +
           '<section class="detail-section"><h3>' + escapeHtml(team1.name || 'Team 1') + '</h3><ul class="player-list">' + rosterList(team1) + '</ul></section>' +
@@ -933,11 +1128,15 @@
         '<section class="detail-section"><h3>Otteluanalyysi</h3><ul class="analysis-list">' +
           analyses.map(function (line) { return '<li>' + escapeHtml(line) + '</li>'; }).join('') +
         '</ul></section>' +
-        '<section class="detail-section"><h3>Top Pelaajat</h3>' +
-          (topPlayers.length
-            ? '<ul class="analysis-list">' + topPlayers.map(function (p) { return '<li>' + escapeHtml(p.nickname + ' · K/D ' + p.kills + '/' + p.deaths) + '</li>'; }).join('') + '</ul>'
-            : '<div class="muted">Ei pelaajakohtaista round-dataa tassa ottelussa.</div>') +
+        '<section class="detail-section">' +
+          '<h3>Nakyma</h3>' +
+          '<div class="toggle-row">' +
+            '<button type="button" class="team-toggle-btn' + (viewMode === 'own' ? ' active' : '') + '" data-top-mode="own">Own Team</button>' +
+            '<button type="button" class="team-toggle-btn' + (viewMode === 'enemy' ? ' active' : '') + '" data-top-mode="enemy">Enemy Team</button>' +
+            '<button type="button" class="team-toggle-btn' + (viewMode === 'both' ? ' active' : '') + '" data-top-mode="both">Both Teams</button>' +
+          '</div>' +
         '</section>' +
+        topPlayersSection +
         '<section class="detail-section"><h3>Lisaksi</h3><a href="' + escapeHtml(faceitUrl) + '" target="_blank" rel="noopener noreferrer">Avaa FACEIT-sivulla</a></section>';
     }
 
@@ -969,6 +1168,7 @@
           throw new Error('Ottelun tietoja ei loytynyt.');
         }
 
+        state.selectedMatchBundle = bundle;
         renderMatchDetailsPanel(bundle);
       } catch (error) {
         elements.matchModalBody.innerHTML = '<div class="message error">' + escapeHtml(error.message || 'Tuntematon virhe') + '</div>';
@@ -978,6 +1178,7 @@
     function closeMatchDetails() {
       setModalOpen(false);
       state.selectedMatchId = '';
+      state.selectedMatchBundle = null;
     }
 
     function renderMatches(matches) {
@@ -1104,6 +1305,18 @@
 
     elements.matchModalClose.addEventListener('click', closeMatchDetails);
     elements.matchModal.addEventListener('click', function (event) {
+      const topModeTrigger = event.target.closest('[data-top-mode]');
+      if (topModeTrigger) {
+        const mode = String(topModeTrigger.getAttribute('data-top-mode') || '').toLowerCase();
+        if (mode === 'own' || mode === 'enemy' || mode === 'both') {
+          state.topPlayerViewMode = mode;
+          if (state.selectedMatchBundle) {
+            renderMatchDetailsPanel(state.selectedMatchBundle);
+          }
+        }
+        return;
+      }
+
       const closeTrigger = event.target.closest('[data-close-modal="1"]');
       if (closeTrigger) {
         closeMatchDetails();
