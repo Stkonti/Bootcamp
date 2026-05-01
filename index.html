@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BOOTCAMPIN ALKUUN</title>
+  <title>KYNYLIHIS BOOTCAMP LIVE</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@600;700&display=swap');
 
@@ -13,10 +13,21 @@
       padding: 0;
     }
 
+    :root {
+      --glass-bg: rgba(8, 12, 24, 0.72);
+      --glass-border: rgba(120, 180, 255, 0.22);
+      --text-main: #f7fbff;
+      --text-muted: rgba(210, 226, 255, 0.78);
+      --accent: #72c4ff;
+      --accent-strong: #3ea4ff;
+      --danger: #ff6b6b;
+      --ok: #35d07f;
+      --warn: #ffb347;
+    }
+
     html, body {
       width: 100%;
-      height: 100%;
-      overflow: hidden;
+      min-height: 100%;
       background: #000;
     }
 
@@ -55,130 +66,305 @@
 
     /* ── Main content ── */
     #content {
-      position: fixed;
-      inset: 0;
+      position: relative;
       z-index: 2;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 2rem;
+      justify-content: flex-start;
+      gap: 1rem;
+      min-height: 100vh;
+      padding: clamp(1rem, 2.6vw, 2rem);
+      overflow-y: auto;
     }
 
     /* Title */
     .main-title {
       font-family: 'Bebas Neue', 'Impact', sans-serif;
-      font-size: clamp(3rem, 10vw, 9rem);
-      letter-spacing: 0.12em;
+      font-size: clamp(2.2rem, 8vw, 5.2rem);
+      letter-spacing: 0.1em;
       color: #fff;
       text-shadow:
-        0 0 20px rgba(255, 170, 0, 0.9),
-        0 0 60px rgba(255, 100, 0, 0.6),
+        0 0 20px rgba(114, 196, 255, 0.85),
+        0 0 50px rgba(40, 122, 255, 0.58),
         0 4px 8px rgba(0, 0, 0, 0.9);
       text-transform: uppercase;
       user-select: none;
+      text-align: center;
     }
 
     /* Sub-label */
     .sub-label {
       font-family: 'Rajdhani', 'Arial', sans-serif;
-      font-size: clamp(0.9rem, 2.5vw, 1.5rem);
+      font-size: clamp(0.85rem, 2.2vw, 1.2rem);
       font-weight: 600;
-      letter-spacing: 0.3em;
-      color: rgba(255, 200, 80, 0.85);
+      letter-spacing: 0.24em;
+      color: rgba(184, 224, 255, 0.9);
       text-transform: uppercase;
-      text-shadow: 0 0 12px rgba(255, 160, 0, 0.7);
-      margin-top: -1.2rem;
+      text-shadow: 0 0 12px rgba(70, 157, 255, 0.55);
+      margin-top: -0.4rem;
       user-select: none;
+      text-align: center;
     }
 
-    /* Countdown wrapper */
-    .countdown {
-      display: flex;
-      gap: clamp(0.8rem, 3vw, 2.5rem);
-      align-items: flex-end;
+    .panel {
+      width: min(1100px, 100%);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      box-shadow:
+        0 16px 60px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(7px) saturate(1.2);
+      padding: clamp(0.9rem, 2.2vw, 1.4rem);
     }
 
-    .cd-block {
+    .top-row {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
+      gap: 0.7rem;
       align-items: center;
-      gap: 0.3rem;
+      justify-content: space-between;
+      margin-bottom: 0.7rem;
     }
 
-    .cd-number {
-      font-family: 'Bebas Neue', 'Impact', sans-serif;
-      font-size: clamp(3.5rem, 11vw, 10rem);
-      line-height: 1;
-      color: #fff;
-      background: linear-gradient(175deg, #ffffff 0%, #c8d0ff 60%, #7090ff 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      filter: drop-shadow(0 0 18px rgba(80, 130, 255, 0.8));
-      min-width: 2ch;
-      text-align: center;
-      transition: transform 0.08s ease;
-      user-select: none;
-    }
-
-    .cd-number.tick {
-      transform: scale(1.06);
-    }
-
-    .cd-label {
+    .meta {
       font-family: 'Rajdhani', 'Arial', sans-serif;
-      font-size: clamp(0.65rem, 1.8vw, 1rem);
       font-weight: 700;
-      letter-spacing: 0.25em;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      font-size: clamp(0.86rem, 1.7vw, 1rem);
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 0.6rem;
+      height: 0.6rem;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+      background: var(--warn);
+      box-shadow: 0 0 12px rgba(255, 179, 71, 0.8);
+    }
+
+    .status-dot.ok {
+      background: var(--ok);
+      box-shadow: 0 0 12px rgba(53, 208, 127, 0.8);
+    }
+
+    .controls,
+    .key-row,
+    .pager {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    .controls {
+      justify-content: space-between;
+      margin-bottom: 0.8rem;
+    }
+
+    .key-row {
+      margin-bottom: 0.8rem;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: min(420px, 100%);
+      border: 1px solid rgba(137, 194, 255, 0.35);
+      background: rgba(12, 20, 37, 0.8);
+      border-radius: 10px;
+      color: var(--text-main);
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: 0.97rem;
+      padding: 0.6rem 0.75rem;
+      outline: none;
+    }
+
+    input::placeholder {
+      color: rgba(191, 214, 252, 0.58);
+    }
+
+    button {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      border: 1px solid rgba(116, 188, 255, 0.42);
+      background: linear-gradient(180deg, rgba(68, 147, 247, 0.26), rgba(40, 106, 193, 0.35));
+      color: var(--text-main);
+      border-radius: 10px;
+      padding: 0.55rem 0.86rem;
+      cursor: pointer;
+      transition: transform 0.12s ease, filter 0.2s ease;
+      font-weight: 700;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: rgba(180, 200, 255, 0.7);
-      user-select: none;
     }
 
-    /* Separator colon */
-    .cd-sep {
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.12);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+    }
+
+    .danger {
+      border-color: rgba(255, 127, 127, 0.5);
+      background: linear-gradient(180deg, rgba(255, 95, 95, 0.22), rgba(160, 44, 44, 0.38));
+    }
+
+    .message {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      color: var(--text-muted);
+      margin: 0.55rem 0 1rem;
+      min-height: 1.1rem;
+    }
+
+    .error {
+      color: #ffd1d1;
+      text-shadow: 0 0 9px rgba(255, 89, 89, 0.55);
+    }
+
+    .matches {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .match-card {
+      border: 1px solid rgba(146, 201, 255, 0.28);
+      border-radius: 14px;
+      background: linear-gradient(175deg, rgba(18, 30, 58, 0.75), rgba(8, 15, 29, 0.82));
+      padding: 0.8rem;
+    }
+
+    .match-head,
+    .teams,
+    .match-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .match-head {
+      margin-bottom: 0.45rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 0.16rem 0.52rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      text-transform: uppercase;
+    }
+
+    .pill.ongoing {
+      color: #d4ffe4;
+      background: rgba(63, 211, 130, 0.2);
+      border-color: rgba(63, 211, 130, 0.48);
+    }
+
+    .pill.finished {
+      color: #d2deff;
+      background: rgba(136, 156, 211, 0.18);
+      border-color: rgba(136, 156, 211, 0.42);
+    }
+
+    .pill.scheduled,
+    .pill.configured,
+    .pill.ready,
+    .pill.unknown {
+      color: #ffe2be;
+      background: rgba(255, 181, 71, 0.18);
+      border-color: rgba(255, 181, 71, 0.42);
+    }
+
+    .competition {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .match-id {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: 0.8rem;
+      color: rgba(198, 223, 255, 0.66);
+    }
+
+    .teams {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      color: var(--text-main);
+      font-size: clamp(1rem, 2vw, 1.1rem);
+      font-weight: 700;
+      margin-bottom: 0.45rem;
+    }
+
+    .score {
       font-family: 'Bebas Neue', 'Impact', sans-serif;
-      font-size: clamp(3rem, 9vw, 8rem);
-      line-height: 1;
-      color: rgba(255, 170, 50, 0.6);
-      padding-bottom: 0.5rem;
-      user-select: none;
-      animation: blink 1s step-start infinite;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.15; }
-    }
-
-    /* Finished state */
-    .finished {
-      font-family: 'Bebas Neue', 'Impact', sans-serif;
-      font-size: clamp(2rem, 7vw, 5rem);
-      color: #ffcc00;
-      text-shadow:
-        0 0 30px rgba(255, 200, 0, 1),
-        0 0 80px rgba(255, 120, 0, 0.7);
-      letter-spacing: 0.1em;
+      font-size: 1.6rem;
+      color: #ffffff;
+      letter-spacing: 0.06em;
+      text-shadow: 0 0 14px rgba(80, 150, 255, 0.65);
+      min-width: 5ch;
       text-align: center;
-      animation: pulse 0.8s ease-in-out infinite alternate;
     }
 
-    @keyframes pulse {
-      from { transform: scale(1); }
-      to   { transform: scale(1.04); }
+    .muted {
+      color: var(--text-muted);
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: 0.9rem;
     }
 
-    /* Date hint */
+    .match-foot a {
+      color: #8dd2ff;
+      text-decoration: none;
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-size: 0.84rem;
+    }
+
+    .match-foot a:hover {
+      text-decoration: underline;
+    }
+
+    .pager {
+      margin-top: 0.85rem;
+      justify-content: space-between;
+    }
+
     .date-hint {
       font-family: 'Rajdhani', 'Arial', sans-serif;
-      font-size: clamp(0.75rem, 2vw, 1.1rem);
+      font-size: clamp(0.74rem, 1.8vw, 0.95rem);
       font-weight: 600;
-      letter-spacing: 0.2em;
-      color: rgba(200, 210, 255, 0.45);
+      letter-spacing: 0.14em;
+      color: rgba(200, 210, 255, 0.6);
       text-transform: uppercase;
       user-select: none;
+      text-align: center;
+    }
+
+    @media (max-width: 620px) {
+      .score {
+        width: 100%;
+      }
+
+      .pager {
+        justify-content: center;
+      }
     }
 
     /* Scanline glitch effect */
@@ -213,109 +399,402 @@
 
   <!-- Main content -->
   <div id="content">
-    <div class="main-title">LANIEN ALKUUN</div>
-    <div class="sub-label">Vappu 2026 &nbsp;·&nbsp; CS2 LAN</div>
+    <div class="main-title">NEMPPi MATCHIT</div>
+    <div class="sub-label">Bootcamp On Alkanut · FACEIT CS2</div>
 
-    <div class="countdown" id="countdown">
-      <!-- Injected by JS -->
+    <div class="panel">
+      <div class="top-row">
+        <div class="meta" id="status-line"><span class="status-dot"></span>Yhteys odottaa API-avainta</div>
+        <div class="controls">
+          <button id="refresh-btn" type="button">Paivita</button>
+          <button id="clear-key-btn" type="button" class="danger">Poista avain</button>
+        </div>
+      </div>
+
+      <div class="key-row">
+        <input id="api-key-input" type="password" placeholder="FACEIT API key" autocomplete="off" />
+        <button id="save-key-btn" type="button">Tallenna avain</button>
+      </div>
+
+      <div class="message" id="message"></div>
+
+      <div class="matches" id="matches"></div>
+
+      <div class="pager">
+        <button id="prev-btn" type="button">Edellinen</button>
+        <div class="meta" id="page-label">Sivu 1</div>
+        <button id="next-btn" type="button">Seuraava</button>
+      </div>
     </div>
 
-    <div class="date-hint" id="date-hint">1. toukokuuta 2026 &nbsp;·&nbsp; klo 11:00 Suomen aikaa</div>
+    <div class="date-hint" id="date-hint">Haetaan NEMPPi pelaajan ottelut ajasta nyt eteenpain</div>
   </div>
 
   <script>
-    // Target: Friday May 1 2026 at 11:00 EEST (UTC+3)
-    const TARGET = new Date('2026-05-01T08:00:00Z'); // 11:00 EEST = 08:00 UTC
+    const CONFIG = {
+      apiBase: 'https://open.faceit.com/data/v4',
+      nickname: 'NEMPPi',
+      game: 'cs2',
+      pageSize: 20,
+      futureWindowDays: 120
+    };
 
-    const cdEl   = document.getElementById('countdown');
-    const hintEl = document.getElementById('date-hint');
+    const elements = {
+      statusLine: document.getElementById('status-line'),
+      message: document.getElementById('message'),
+      matches: document.getElementById('matches'),
+      dateHint: document.getElementById('date-hint'),
+      apiKeyInput: document.getElementById('api-key-input'),
+      saveKeyBtn: document.getElementById('save-key-btn'),
+      clearKeyBtn: document.getElementById('clear-key-btn'),
+      refreshBtn: document.getElementById('refresh-btn'),
+      prevBtn: document.getElementById('prev-btn'),
+      nextBtn: document.getElementById('next-btn'),
+      pageLabel: document.getElementById('page-label')
+    };
 
-    function pad(n) {
-      return String(Math.max(0, n)).padStart(2, '0');
+    const state = {
+      apiKey: '',
+      playerId: '',
+      offset: 0,
+      hasNext: false,
+      isLoading: false,
+      startedFrom: Math.floor(Date.now() / 1000),
+      toUnix: Math.floor(Date.now() / 1000) + CONFIG.futureWindowDays * 24 * 60 * 60,
+      lastUpdated: ''
+    };
+
+    function setStatus(text, ok = false) {
+      elements.statusLine.innerHTML = '<span class="status-dot' + (ok ? ' ok' : '') + '"></span>' + text;
     }
 
-    function tick(el) {
-      el.classList.remove('tick');
-      // Force reflow so the animation re-triggers
-      void el.offsetWidth;
-      el.classList.add('tick');
-      setTimeout(() => el.classList.remove('tick'), 80);
+    function setMessage(text, isError = false) {
+      elements.message.textContent = text || '';
+      elements.message.className = isError ? 'message error' : 'message';
     }
 
-    let prevValues = {};
+    function authHeaderCandidates(apiKey) {
+      const trimmed = (apiKey || '').trim();
+      if (!trimmed) {
+        return [];
+      }
 
-    function update() {
-      const now  = Date.now();
-      const diff = TARGET.getTime() - now;
+      if (/^bearer\s+/i.test(trimmed)) {
+        return [trimmed];
+      }
 
-      if (diff <= 0) {
-        cdEl.innerHTML = '';
-        hintEl.textContent = '';
-        const fin = document.createElement('div');
-        fin.className = 'finished';
-        fin.textContent = 'LANI ON ALKANUT! 🎉';
-        cdEl.appendChild(fin);
+      return ['Bearer ' + trimmed, trimmed];
+    }
+
+    async function faceitFetch(path, params) {
+      const url = new URL(CONFIG.apiBase + path);
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== '') {
+            url.searchParams.set(k, String(v));
+          }
+        });
+      }
+
+      const candidates = authHeaderCandidates(state.apiKey);
+      if (!candidates.length) {
+        throw new Error('API key puuttuu');
+      }
+
+      let last401 = null;
+      for (const headerValue of candidates) {
+        const response = await fetch(url.toString(), {
+          headers: {
+            Accept: 'application/json',
+            Authorization: headerValue
+          }
+        });
+
+        if (response.status === 401) {
+          last401 = response;
+          continue;
+        }
+
+        if (!response.ok) {
+          let details = '';
+          try {
+            const data = await response.json();
+            details = data && data.message ? data.message : '';
+          } catch (e) {
+            details = '';
+          }
+          throw new Error('FACEIT virhe ' + response.status + (details ? ': ' + details : ''));
+        }
+
+        return response.json();
+      }
+
+      if (last401) {
+        throw new Error('Unauthorized (401). Tarkista API key.');
+      }
+
+      throw new Error('Tuntematon API-virhe');
+    }
+
+    function getMatchTime(match) {
+      return match.scheduled_at || match.started_at || match.finished_at || 0;
+    }
+
+    function fmtDate(unixSeconds) {
+      if (!unixSeconds) {
+        return 'Ei aikaa';
+      }
+      return new Date(unixSeconds * 1000).toLocaleString('fi-FI', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function statusClass(status) {
+      const value = (status || '').toLowerCase();
+      if (value.includes('ongoing') || value.includes('started')) {
+        return 'ongoing';
+      }
+      if (value.includes('finished') || value.includes('cancelled')) {
+        return 'finished';
+      }
+      if (value.includes('scheduled') || value.includes('configured') || value.includes('ready')) {
+        return value;
+      }
+      return 'unknown';
+    }
+
+    function formatScore(match) {
+      const score = match && match.results && match.results.score ? match.results.score : null;
+      if (!score) {
+        return '-';
+      }
+      const values = Object.values(score);
+      if (!values.length) {
+        return '-';
+      }
+      return values.join(' : ');
+    }
+
+    function teamNames(match) {
+      const teams = (match && match.teams) || {};
+      const list = Object.values(teams)
+        .map(function (team) {
+          return team && team.nickname ? team.nickname : '';
+        })
+        .filter(Boolean);
+
+      if (!list.length) {
+        return ['TBD', 'TBD'];
+      }
+
+      if (list.length === 1) {
+        return [list[0], 'TBD'];
+      }
+
+      return [list[0], list[1]];
+    }
+
+    function renderMatches(matches) {
+      elements.matches.innerHTML = '';
+
+      if (!matches.length) {
+        elements.matches.innerHTML = '<div class="message">Ei otteluita nykyisella haulla.</div>';
         return;
       }
 
-      const days  = Math.floor(diff / 86400000);
-      const hours = Math.floor((diff % 86400000) / 3600000);
-      const mins  = Math.floor((diff % 3600000)  / 60000);
-      const secs  = Math.floor((diff % 60000)     / 1000);
+      matches.forEach(function (match) {
+        const teams = teamNames(match);
+        const card = document.createElement('article');
+        card.className = 'match-card';
 
-      const parts = [
-        { id: 'cd-days',  val: pad(days),  label: days === 1 ? 'Päivä' : 'Päivää' },
-        { sep: true },
-        { id: 'cd-hours', val: pad(hours), label: 'Tuntia' },
-        { sep: true },
-        { id: 'cd-mins',  val: pad(mins),  label: 'Minuuttia' },
-        { sep: true },
-        { id: 'cd-secs',  val: pad(secs),  label: 'Sekuntia' },
-      ];
+        const status = (match.status || 'unknown').toLowerCase();
+        const statusText = status || 'unknown';
+        const competition = match.competition_name || match.competition_type || 'FACEIT Match';
+        const id = match.match_id || 'n/a';
+        const score = formatScore(match);
+        const time = fmtDate(getMatchTime(match));
+        const region = match.region || 'N/A';
+        const url = match.faceit_url || 'https://www.faceit.com/en/players/' + CONFIG.nickname;
 
-      // Build DOM only once, then update values
-      if (!cdEl.querySelector('.cd-block')) {
-        cdEl.innerHTML = '';
-        parts.forEach(p => {
-          if (p.sep) {
-            const s = document.createElement('span');
-            s.className = 'cd-sep';
-            s.textContent = ':';
-            cdEl.appendChild(s);
-          } else {
-            const block = document.createElement('div');
-            block.className = 'cd-block';
+        card.innerHTML = '' +
+          '<div class="match-head">' +
+            '<div>' +
+              '<div class="competition">' + competition + '</div>' +
+              '<div class="match-id">Match ID: ' + id + '</div>' +
+            '</div>' +
+            '<span class="pill ' + statusClass(statusText) + '">' + statusText + '</span>' +
+          '</div>' +
+          '<div class="teams">' +
+            '<span>' + teams[0] + '</span>' +
+            '<span class="score">' + score + '</span>' +
+            '<span>' + teams[1] + '</span>' +
+          '</div>' +
+          '<div class="match-foot">' +
+            '<div class="muted">Aika: ' + time + ' · Region: ' + region + '</div>' +
+            '<a href="' + url + '" target="_blank" rel="noopener noreferrer">Avaa FACEIT</a>' +
+          '</div>';
 
-            const num = document.createElement('div');
-            num.className = 'cd-number';
-            num.id = p.id;
-            num.textContent = p.val;
+        elements.matches.appendChild(card);
+      });
+    }
 
-            const lbl = document.createElement('div');
-            lbl.className = 'cd-label';
-            lbl.id = p.id + '-lbl';
-            lbl.textContent = p.label;
+    function updatePager() {
+      const page = Math.floor(state.offset / CONFIG.pageSize) + 1;
+      elements.pageLabel.textContent = 'Sivu ' + page;
+      elements.prevBtn.disabled = state.offset === 0 || state.isLoading;
+      elements.nextBtn.disabled = !state.hasNext || state.isLoading;
+    }
 
-            block.appendChild(num);
-            block.appendChild(lbl);
-            cdEl.appendChild(block);
-          }
+    async function loadPlayer() {
+      const data = await faceitFetch('/players', { nickname: CONFIG.nickname });
+      if (!data || !data.player_id) {
+        throw new Error('Pelaajaa ei loytynyt nimella ' + CONFIG.nickname);
+      }
+      state.playerId = data.player_id;
+      return data;
+    }
+
+    async function loadMatches(resetOffset) {
+      if (!state.apiKey) {
+        setStatus('Yhteys odottaa API-avainta', false);
+        setMessage('Syota FACEIT Data API key jatkaaksesi.');
+        renderMatches([]);
+        return;
+      }
+
+      if (resetOffset) {
+        state.offset = 0;
+      }
+
+      state.isLoading = true;
+      updatePager();
+      setStatus('Haetaan otteluita...', false);
+      setMessage('Ladataan dataa...');
+
+      try {
+        if (!state.playerId) {
+          await loadPlayer();
+        }
+
+        const payload = await faceitFetch('/players/' + state.playerId + '/history', {
+          game: CONFIG.game,
+          from: state.startedFrom,
+          to: state.toUnix,
+          offset: state.offset,
+          limit: CONFIG.pageSize
         });
-      } else {
-        parts.filter(p => !p.sep).forEach(p => {
-          const el  = document.getElementById(p.id);
-          const lbl = document.getElementById(p.id + '-lbl');
-          if (el && el.textContent !== p.val) {
-            el.textContent = p.val;
-            tick(el);
-          }
-          if (lbl) lbl.textContent = p.label;
+
+        const items = Array.isArray(payload.items) ? payload.items.slice() : [];
+        items.sort(function (a, b) {
+          return getMatchTime(a) - getMatchTime(b);
         });
+
+        state.hasNext = items.length === CONFIG.pageSize;
+        state.lastUpdated = new Date().toLocaleTimeString('fi-FI');
+
+        renderMatches(items);
+        setStatus('Yhteys ok · Paivitetty ' + state.lastUpdated, true);
+        setMessage('Pelaaja: ' + CONFIG.nickname + ' · Matchit ajasta nyt eteenpain.');
+      } catch (error) {
+        setStatus('Yhteysvirhe', false);
+        setMessage(error.message || 'Tuntematon virhe', true);
+        renderMatches([]);
+      } finally {
+        state.isLoading = false;
+        updatePager();
       }
     }
 
-    update();
-    setInterval(update, 1000);
+    function saveApiKey() {
+      const value = elements.apiKeyInput.value.trim();
+      state.apiKey = value;
+      localStorage.setItem('faceit_api_key', value);
+      state.playerId = '';
+      loadMatches(true);
+    }
+
+    async function loadApiKeyFromEnv() {
+      try {
+        const response = await fetch('./.env', { cache: 'no-store' });
+        if (!response.ok) {
+          return '';
+        }
+
+        const text = await response.text();
+        const match = text.match(/^FACEIT_API_KEY\s*=\s*(.+)\s*$/m);
+        return match ? match[1].trim() : '';
+      } catch (error) {
+        return '';
+      }
+    }
+
+    function clearApiKey() {
+      state.apiKey = '';
+      state.playerId = '';
+      localStorage.removeItem('faceit_api_key');
+      elements.apiKeyInput.value = '';
+      state.offset = 0;
+      state.hasNext = false;
+      updatePager();
+      setStatus('Yhteys odottaa API-avainta', false);
+      setMessage('API key poistettu.');
+      renderMatches([]);
+    }
+
+    elements.saveKeyBtn.addEventListener('click', saveApiKey);
+    elements.apiKeyInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        saveApiKey();
+      }
+    });
+
+    elements.clearKeyBtn.addEventListener('click', clearApiKey);
+    elements.refreshBtn.addEventListener('click', function () {
+      loadMatches(false);
+    });
+
+    elements.prevBtn.addEventListener('click', function () {
+      if (state.offset === 0 || state.isLoading) {
+        return;
+      }
+      state.offset = Math.max(0, state.offset - CONFIG.pageSize);
+      loadMatches(false);
+    });
+
+    elements.nextBtn.addEventListener('click', function () {
+      if (!state.hasNext || state.isLoading) {
+        return;
+      }
+      state.offset += CONFIG.pageSize;
+      loadMatches(false);
+    });
+
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const keyFromQuery = params.get('faceitKey');
+      const keyFromEnv = await loadApiKeyFromEnv();
+      const saved = keyFromQuery || keyFromEnv || localStorage.getItem('faceit_api_key') || '';
+
+      state.apiKey = saved.trim();
+      elements.apiKeyInput.value = state.apiKey;
+
+      elements.dateHint.textContent = 'Hakuaika alkaa: ' + fmtDate(state.startedFrom) + ' · Game: ' + CONFIG.game;
+      updatePager();
+      loadMatches(true);
+
+      // Auto refresh keeps first page up to date while preserving manual browsing on other pages.
+      setInterval(function () {
+        if (state.offset === 0 && !state.isLoading && state.apiKey) {
+          loadMatches(false);
+        }
+      }, 60000);
+    }
+
+    init();
   </script>
 </body>
 </html>
