@@ -479,6 +479,10 @@
         }
       });
 
+      if (response.status === 404) {
+        return null;
+      }
+
       if (!response.ok) {
         let details = '';
         try {
@@ -556,6 +560,8 @@
     }
 
     function renderMatches(matches) {
+      elements.matches.innerHTML = '';
+
       if (!matches.length) {
         elements.matches.innerHTML = '<div class="message">Ei otteluita nykyisella haulla.</div>';
         return;
@@ -607,7 +613,7 @@
     async function loadPlayer() {
       const data = await faceitFetch('/players', { nickname: CONFIG.nickname });
       if (!data || !data.player_id) {
-        throw new Error('Pelaajaa ei loytynyt nimella ' + CONFIG.nickname);
+        throw new Error('Pelaajaa ei loytynyt nimella: ' + CONFIG.nickname);
       }
       state.playerId = data.player_id;
       return data;
@@ -636,7 +642,7 @@
           limit: CONFIG.pageSize
         });
 
-        const items = Array.isArray(payload.items) ? payload.items.slice() : [];
+        const items = payload && Array.isArray(payload.items) ? payload.items.slice() : [];
         items.sort(function (a, b) {
           return getMatchTime(a) - getMatchTime(b);
         });
