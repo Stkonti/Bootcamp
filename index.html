@@ -426,7 +426,9 @@
 
   <script>
     const CONFIG = {
-      apiBase: '/api/faceit',
+      proxyApiBase: '/api/faceit',
+      directApiBase: 'https://open.faceit.com/data/v4',
+      publicApiKey: '',
       nickname: 'NEMPPi',
       game: 'cs2',
       pageSize: 20,
@@ -445,6 +447,7 @@
     };
 
     const state = {
+      useProxy: true,
       playerId: '',
       offset: 0,
       hasNext: false,
@@ -464,7 +467,11 @@
     }
 
     async function faceitFetch(path, params) {
-      const url = new URL(CONFIG.apiBase + path, window.location.origin);
+      const base = state.useProxy ? CONFIG.proxyApiBase : CONFIG.directApiBase;
+      const url = state.useProxy
+        ? new URL(base + path, window.location.origin)
+        : new URL(base + path);
+
       if (params) {
         Object.entries(params).forEach(([k, v]) => {
           if (v !== undefined && v !== null && v !== '') {
@@ -473,11 +480,29 @@
         });
       }
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          Accept: 'application/json'
+      const headers = {
+        Accept: 'application/json'
+      };
+
+      if (!state.useProxy) {
+        const key = (CONFIG.publicApiKey || 'f9458d8a-a3de-4801-9224-152cd76e8000').trim();
+        if (!key) {
+          throw new Error('Aseta FACEIT API key CONFIG.publicApiKey-kenttaan index.html tiedostossa.');
         }
+        headers.Authorization = /^bearer\s+/i.test(key) ? key : 'Bearer ' + key;
+      }
+
+      const response = await fetch(url.toString(), {
+        headers: headers
       });
+
+      // On GitHub Pages, /api/faceit returns a static 404 page (text/html).
+      if (state.useProxy && response.status === 404) {
+        const contentType = (response.headers.get('content-type') || '').toLowerCase();
+        if (contentType.includes('text/html')) {
+          throw new Error('Backend proxya ei ole saatavilla GitHub Pagesissa. Kayta suoraa API-tilaa asettamalla CONFIG.publicApiKey.');
+        }
+      }
 
       if (response.status === 404) {
         return null;
@@ -684,6 +709,12 @@
     });
 
     function init() {
+      const host = (window.location.hostname || '').toLowerCase();
+      const isGithubPages = host.endsWith('github.io');
+      if (isGithubPages) {
+        state.useProxy = false;
+      }
+
       elements.dateHint.textContent = 'Hakuaika alkaa: ' + fmtDate(state.startedFrom) + ' · Game: ' + CONFIG.game;
       updatePager();
       loadMatches(true);
