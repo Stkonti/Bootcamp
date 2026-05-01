@@ -908,15 +908,46 @@
       return enemy || (ownFaction === 'faction1' ? 'faction2' : 'faction1');
     }
 
-    function buildTopPlayersForFaction(statsPayload, factionId) {
+    function buildTopPlayersForFaction(matchDetails, statsPayload, factionId) {
       if (!statsPayload || !Array.isArray(statsPayload.rounds) || !statsPayload.rounds.length) {
         return [];
       }
 
+      // Build a roster lookup (player_id and nickname) for the given faction
+      // so we can filter stats players to only that side, regardless of whether
+      // the stats API returns teams as an object or an array.
+      const factionTeamDetail = matchDetails && matchDetails.teams ? matchDetails.teams[factionId] : null;
+      const rosterIds = new Set();
+      const rosterNicks = new Set();
+      if (factionTeamDetail && Array.isArray(factionTeamDetail.roster)) {
+        factionTeamDetail.roster.forEach(function (p) {
+          if (p && p.player_id) { rosterIds.add(String(p.player_id).toLowerCase()); }
+          if (p && p.nickname)  { rosterNicks.add(String(p.nickname).toLowerCase()); }
+        });
+      }
+      const hasRoster = rosterIds.size > 0 || rosterNicks.size > 0;
+
       const totals = {};
       statsPayload.rounds.forEach(function (round) {
-        const team = round && round.teams ? round.teams[factionId] : null;
-        const players = team && Array.isArray(team.players) ? team.players : [];
+        // FACEIT stats API returns teams as an ARRAY, not an object keyed by faction.
+        // Collect all players across all teams, then filter by roster membership.
+        const teamsRaw = round && round.teams ? round.teams : [];
+        const teamList = Array.isArray(teamsRaw) ? teamsRaw : Object.values(teamsRaw);
+
+        // If we have a faction-ID key directly (object form), prefer that team only.
+        const directTeam = !Array.isArray(teamsRaw) ? teamsRaw[factionId] : null;
+        const playersSource = directTeam
+          ? (Array.isArray(directTeam.players) ? directTeam.players : [])
+          : teamList.reduce(function (acc, team) {
+              return acc.concat(Array.isArray(team && team.players) ? team.players : []);
+            }, []);
+
+        const players = playersSource.filter(function (player) {
+          if (!hasRoster) { return true; }
+          const pid  = String(player && player.player_id ? player.player_id : '').toLowerCase();
+          const nick = String(player && player.nickname  ? player.nickname  : '').toLowerCase();
+          return (pid && rosterIds.has(pid)) || (nick && rosterNicks.has(nick));
+        });
 
         players.forEach(function (player) {
           const playerStats = player && player.player_stats ? player.player_stats : {};
@@ -999,11 +1030,11 @@
     }
 
     function buildOwnTeamTopPlayers(matchDetails, statsPayload) {
-      return buildTopPlayersForFaction(statsPayload, ownFactionId(matchDetails));
+      return buildTopPlayersForFaction(matchDetails, statsPayload, ownFactionId(matchDetails));
     }
 
     function buildEnemyTeamTopPlayers(matchDetails, statsPayload) {
-      return buildTopPlayersForFaction(statsPayload, enemyFactionId(matchDetails));
+      return buildTopPlayersForFaction(matchDetails, statsPayload, enemyFactionId(matchDetails));
     }
 
     function topPlayerLine(player) {
