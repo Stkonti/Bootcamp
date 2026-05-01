@@ -584,6 +584,24 @@
       return [list[0], list[1]];
     }
 
+    function faceitStatsUrl() {
+      return 'https://www.faceit.com/en/players/' + encodeURIComponent(CONFIG.nickname) + '/stats/' + CONFIG.game;
+    }
+
+    function buildFaceitUrl(match) {
+      const raw = match && match.faceit_url ? String(match.faceit_url) : '';
+      if (!raw) {
+        return faceitStatsUrl();
+      }
+
+      const normalized = raw.replace('{lang}', 'en');
+      if (/^https:\/\/www\.faceit\.com\//i.test(normalized)) {
+        return normalized;
+      }
+
+      return faceitStatsUrl();
+    }
+
     function renderMatches(matches) {
       elements.matches.innerHTML = '';
 
@@ -604,7 +622,7 @@
         const score = formatScore(match);
         const time = fmtDate(getMatchTime(match));
         const region = match.region || 'N/A';
-        const url = match.faceit_url || 'https://www.faceit.com/en/players/' + CONFIG.nickname;
+        const url = buildFaceitUrl(match);
 
         card.innerHTML = '' +
           '<div class="match-head">' +
