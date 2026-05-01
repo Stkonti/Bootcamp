@@ -357,6 +357,142 @@
       text-align: center;
     }
 
+    .match-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .match-actions .open-details-btn {
+      font-size: 0.8rem;
+      padding: 0.42rem 0.64rem;
+    }
+
+    .match-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+    }
+
+    .match-modal.open {
+      display: block;
+    }
+
+    .match-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+    }
+
+    .match-modal-dialog {
+      position: relative;
+      width: min(980px, calc(100% - 1.2rem));
+      max-height: calc(100vh - 1.2rem);
+      margin: 0.6rem auto;
+      border: 1px solid rgba(120, 180, 255, 0.32);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(7, 15, 33, 0.96), rgba(6, 11, 22, 0.98));
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.62);
+      backdrop-filter: blur(8px) saturate(1.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .match-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.7rem;
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid rgba(120, 180, 255, 0.2);
+      background: rgba(18, 34, 66, 0.6);
+    }
+
+    .match-modal-title {
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: clamp(1.3rem, 3.2vw, 2rem);
+      letter-spacing: 0.06em;
+      color: var(--text-main);
+      text-transform: uppercase;
+    }
+
+    .match-modal-close {
+      border-color: rgba(255, 127, 127, 0.55);
+      background: linear-gradient(180deg, rgba(255, 95, 95, 0.2), rgba(160, 44, 44, 0.34));
+      padding: 0.45rem 0.7rem;
+      font-size: 0.78rem;
+    }
+
+    .match-modal-body {
+      padding: 0.9rem 1rem 1rem;
+      overflow: auto;
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .detail-item {
+      border: 1px solid rgba(146, 201, 255, 0.2);
+      background: rgba(10, 22, 45, 0.68);
+      border-radius: 10px;
+      padding: 0.5rem 0.6rem;
+    }
+
+    .detail-k {
+      color: rgba(176, 208, 255, 0.72);
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .detail-v {
+      color: var(--text-main);
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-top: 0.2rem;
+    }
+
+    .detail-section {
+      border: 1px solid rgba(146, 201, 255, 0.24);
+      background: rgba(9, 17, 35, 0.72);
+      border-radius: 12px;
+      padding: 0.72rem;
+    }
+
+    .detail-section h3 {
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      font-size: 0.95rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: rgba(191, 219, 255, 0.94);
+      margin-bottom: 0.45rem;
+    }
+
+    .analysis-list,
+    .player-list {
+      margin-left: 1rem;
+      color: var(--text-muted);
+      font-family: 'Rajdhani', 'Arial', sans-serif;
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    .split {
+      display: grid;
+      gap: 0.72rem;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
     @media (max-width: 620px) {
       .score {
         width: 100%;
@@ -424,6 +560,17 @@
     <div class="date-hint" id="date-hint">Haetaan NEMPPi pelaajan ottelut ajasta nyt eteenpain</div>
   </div>
 
+  <div id="match-modal" class="match-modal" aria-hidden="true">
+    <div class="match-modal-backdrop" data-close-modal="1"></div>
+    <div class="match-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="match-modal-title">
+      <div class="match-modal-head">
+        <div class="match-modal-title" id="match-modal-title">Ottelun tiedot</div>
+        <button id="match-modal-close" type="button" class="match-modal-close">Sulje</button>
+      </div>
+      <div id="match-modal-body" class="match-modal-body"></div>
+    </div>
+  </div>
+
   <script>
     const CONFIG = {
       proxyApiBase: '/api/faceit',
@@ -440,6 +587,10 @@
       message: document.getElementById('message'),
       matches: document.getElementById('matches'),
       dateHint: document.getElementById('date-hint'),
+      matchModal: document.getElementById('match-modal'),
+      matchModalTitle: document.getElementById('match-modal-title'),
+      matchModalBody: document.getElementById('match-modal-body'),
+      matchModalClose: document.getElementById('match-modal-close'),
       refreshBtn: document.getElementById('refresh-btn'),
       prevBtn: document.getElementById('prev-btn'),
       nextBtn: document.getElementById('next-btn'),
@@ -454,7 +605,9 @@
       isLoading: false,
       startedFrom: Math.floor(Date.now() / 1000),
       toUnix: Math.floor(Date.now() / 1000) + CONFIG.futureWindowDays * 24 * 60 * 60,
-      lastUpdated: ''
+      lastUpdated: '',
+      selectedMatchId: '',
+      detailsCache: {}
     };
 
     function setStatus(text, ok = false) {
@@ -602,6 +755,231 @@
       return faceitStatsUrl();
     }
 
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function parseNumber(value) {
+      const n = Number(String(value == null ? '' : value).replace(',', '.'));
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function probabilityText(value) {
+      const n = parseNumber(value);
+      if (!n) {
+        return '-';
+      }
+      const normalized = n > 1 ? n / 100 : n;
+      return Math.round(normalized * 100) + '%';
+    }
+
+    function teamFromFaction(matchDetails, factionId) {
+      if (!matchDetails || !matchDetails.teams || !factionId) {
+        return null;
+      }
+      return matchDetails.teams[factionId] || null;
+    }
+
+    function factionScore(matchDetails, factionId) {
+      const detailed = Array.isArray(matchDetails && matchDetails.detailed_results)
+        ? matchDetails.detailed_results[0]
+        : null;
+      if (detailed && detailed.factions && detailed.factions[factionId]) {
+        const score = detailed.factions[factionId].score;
+        return score == null ? '-' : String(score);
+      }
+
+      const score = matchDetails && matchDetails.results && matchDetails.results.score
+        ? matchDetails.results.score[factionId]
+        : null;
+      return score == null ? '-' : String(score);
+    }
+
+    function mapText(matchDetails) {
+      const voting = matchDetails && matchDetails.voting ? matchDetails.voting : null;
+      if (!voting || !voting.map) {
+        return 'Ei tiedossa';
+      }
+
+      const map = voting.map;
+      if (typeof map === 'string') {
+        return map;
+      }
+      if (Array.isArray(map.pick) && map.pick.length) {
+        return String(map.pick[0]);
+      }
+      if (Array.isArray(map.selected) && map.selected.length) {
+        return String(map.selected[0]);
+      }
+      if (map.pick && typeof map.pick === 'string') {
+        return map.pick;
+      }
+      return 'Ei tiedossa';
+    }
+
+    function buildTopPlayers(statsPayload) {
+      if (!statsPayload || !Array.isArray(statsPayload.rounds) || !statsPayload.rounds.length) {
+        return [];
+      }
+
+      const totals = {};
+      statsPayload.rounds.forEach(function (round) {
+        const teams = round && round.teams ? Object.values(round.teams) : [];
+        teams.forEach(function (team) {
+          const players = team && Array.isArray(team.players) ? team.players : [];
+          players.forEach(function (player) {
+            const pid = player && (player.player_id || player.nickname || 'unknown');
+            const name = player && player.nickname ? player.nickname : 'unknown';
+            const playerStats = player && player.player_stats ? player.player_stats : {};
+            const kills = parseNumber(playerStats.Kills || playerStats.kills || playerStats.K || 0);
+            const deaths = parseNumber(playerStats.Deaths || playerStats.deaths || playerStats.D || 0);
+
+            if (!totals[pid]) {
+              totals[pid] = { nickname: name, kills: 0, deaths: 0 };
+            }
+            totals[pid].kills += kills;
+            totals[pid].deaths += deaths;
+          });
+        });
+      });
+
+      return Object.values(totals)
+        .sort(function (a, b) {
+          if (b.kills !== a.kills) {
+            return b.kills - a.kills;
+          }
+          return a.deaths - b.deaths;
+        })
+        .slice(0, 3);
+    }
+
+    function analysisLines(matchDetails, statsPayload) {
+      const lines = [];
+      const winnerId = matchDetails && matchDetails.results ? matchDetails.results.winner : '';
+      const winnerTeam = teamFromFaction(matchDetails, winnerId);
+      if (winnerTeam && winnerTeam.name) {
+        lines.push('Voittaja: ' + winnerTeam.name + '.');
+      }
+
+      const team1 = teamFromFaction(matchDetails, 'faction1');
+      const team2 = teamFromFaction(matchDetails, 'faction2');
+      const wp1 = team1 && team1.stats ? team1.stats.winProbability : null;
+      const wp2 = team2 && team2.stats ? team2.stats.winProbability : null;
+
+      if (wp1 != null && wp2 != null) {
+        lines.push('Voittotodennakoisyydet ennen ottelua: ' +
+          (team1 && team1.name ? team1.name : 'Team 1') + ' ' + probabilityText(wp1) + ' · ' +
+          (team2 && team2.name ? team2.name : 'Team 2') + ' ' + probabilityText(wp2) + '.');
+      }
+
+      const top = buildTopPlayers(statsPayload);
+      if (top.length) {
+        lines.push('Top fragger datajoukosta: ' + top[0].nickname + ' (' + top[0].kills + '/' + top[0].deaths + ').');
+      } else {
+        lines.push('Pelaajakohtainen ottelustats ei ollut saatavilla tasta ottelusta Data APIssa.');
+      }
+
+      return lines;
+    }
+
+    function rosterList(team) {
+      const roster = team && Array.isArray(team.roster) ? team.roster : [];
+      if (!roster.length) {
+        return '<li>Ei roster-dataa</li>';
+      }
+      return roster
+        .map(function (player) {
+          const nick = player && player.nickname ? player.nickname : 'unknown';
+          return '<li>' + escapeHtml(nick) + '</li>';
+        })
+        .join('');
+    }
+
+    function setModalOpen(open) {
+      elements.matchModal.classList.toggle('open', open);
+      elements.matchModal.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
+
+    function renderMatchDetailsPanel(bundle) {
+      const details = bundle.details;
+      const stats = bundle.stats;
+      const team1 = teamFromFaction(details, 'faction1') || {};
+      const team2 = teamFromFaction(details, 'faction2') || {};
+      const score1 = factionScore(details, 'faction1');
+      const score2 = factionScore(details, 'faction2');
+      const analyses = analysisLines(details, stats);
+      const topPlayers = buildTopPlayers(stats);
+      const faceitUrl = buildFaceitUrl(details);
+
+      elements.matchModalTitle.textContent = (details.competition_name || 'Match') + ' · ' + (details.status || 'unknown');
+      elements.matchModalBody.innerHTML = '' +
+        '<div class="detail-grid">' +
+          '<div class="detail-item"><div class="detail-k">Match ID</div><div class="detail-v">' + escapeHtml(details.match_id || 'n/a') + '</div></div>' +
+          '<div class="detail-item"><div class="detail-k">Aika</div><div class="detail-v">' + escapeHtml(fmtDate(getMatchTime(details))) + '</div></div>' +
+          '<div class="detail-item"><div class="detail-k">Region</div><div class="detail-v">' + escapeHtml(details.region || 'N/A') + '</div></div>' +
+          '<div class="detail-item"><div class="detail-k">Map</div><div class="detail-v">' + escapeHtml(mapText(details)) + '</div></div>' +
+          '<div class="detail-item"><div class="detail-k">Tulos</div><div class="detail-v">' + escapeHtml(score1 + ' : ' + score2) + '</div></div>' +
+          '<div class="detail-item"><div class="detail-k">Paras 3</div><div class="detail-v">' + escapeHtml(topPlayers.length ? topPlayers.length + ' pelaajaa' : 'Ei saatavilla') + '</div></div>' +
+        '</div>' +
+        '<div class="split">' +
+          '<section class="detail-section"><h3>' + escapeHtml(team1.name || 'Team 1') + '</h3><ul class="player-list">' + rosterList(team1) + '</ul></section>' +
+          '<section class="detail-section"><h3>' + escapeHtml(team2.name || 'Team 2') + '</h3><ul class="player-list">' + rosterList(team2) + '</ul></section>' +
+        '</div>' +
+        '<section class="detail-section"><h3>Otteluanalyysi</h3><ul class="analysis-list">' +
+          analyses.map(function (line) { return '<li>' + escapeHtml(line) + '</li>'; }).join('') +
+        '</ul></section>' +
+        '<section class="detail-section"><h3>Top Pelaajat</h3>' +
+          (topPlayers.length
+            ? '<ul class="analysis-list">' + topPlayers.map(function (p) { return '<li>' + escapeHtml(p.nickname + ' · K/D ' + p.kills + '/' + p.deaths) + '</li>'; }).join('') + '</ul>'
+            : '<div class="muted">Ei pelaajakohtaista round-dataa tassa ottelussa.</div>') +
+        '</section>' +
+        '<section class="detail-section"><h3>Lisaksi</h3><a href="' + escapeHtml(faceitUrl) + '" target="_blank" rel="noopener noreferrer">Avaa FACEIT-sivulla</a></section>';
+    }
+
+    async function openMatchDetails(matchId) {
+      if (!matchId) {
+        return;
+      }
+
+      state.selectedMatchId = matchId;
+      setModalOpen(true);
+      elements.matchModalTitle.textContent = 'Ottelun tiedot';
+      elements.matchModalBody.innerHTML = '<div class="message">Ladataan ottelun lisatietoja...</div>';
+
+      try {
+        let bundle = state.detailsCache[matchId];
+        if (!bundle) {
+          const details = await faceitFetch('/matches/' + matchId);
+          let stats = null;
+          try {
+            stats = await faceitFetch('/matches/' + matchId + '/stats');
+          } catch (statsError) {
+            stats = null;
+          }
+          bundle = { details: details, stats: stats };
+          state.detailsCache[matchId] = bundle;
+        }
+
+        if (!bundle.details) {
+          throw new Error('Ottelun tietoja ei loytynyt.');
+        }
+
+        renderMatchDetailsPanel(bundle);
+      } catch (error) {
+        elements.matchModalBody.innerHTML = '<div class="message error">' + escapeHtml(error.message || 'Tuntematon virhe') + '</div>';
+      }
+    }
+
+    function closeMatchDetails() {
+      setModalOpen(false);
+      state.selectedMatchId = '';
+    }
+
     function renderMatches(matches) {
       elements.matches.innerHTML = '';
 
@@ -623,6 +1001,7 @@
         const time = fmtDate(getMatchTime(match));
         const region = match.region || 'N/A';
         const url = buildFaceitUrl(match);
+        const safeMatchId = escapeHtml(id);
 
         card.innerHTML = '' +
           '<div class="match-head">' +
@@ -639,7 +1018,10 @@
           '</div>' +
           '<div class="match-foot">' +
             '<div class="muted">Aika: ' + time + ' · Region: ' + region + '</div>' +
-            '<a href="' + url + '" target="_blank" rel="noopener noreferrer">Avaa FACEIT</a>' +
+            '<div class="match-actions">' +
+              '<button type="button" class="open-details-btn" data-match-id="' + safeMatchId + '">Avaa tiedot</button>' +
+              '<a href="' + url + '" target="_blank" rel="noopener noreferrer">Avaa FACEIT</a>' +
+            '</div>' +
           '</div>';
 
         elements.matches.appendChild(card);
@@ -708,6 +1090,30 @@
 
     elements.refreshBtn.addEventListener('click', function () {
       loadMatches(false);
+    });
+
+    elements.matches.addEventListener('click', function (event) {
+      const trigger = event.target.closest('.open-details-btn');
+      if (!trigger) {
+        return;
+      }
+
+      const matchId = trigger.getAttribute('data-match-id');
+      openMatchDetails(matchId);
+    });
+
+    elements.matchModalClose.addEventListener('click', closeMatchDetails);
+    elements.matchModal.addEventListener('click', function (event) {
+      const closeTrigger = event.target.closest('[data-close-modal="1"]');
+      if (closeTrigger) {
+        closeMatchDetails();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && elements.matchModal.classList.contains('open')) {
+        closeMatchDetails();
+      }
     });
 
     elements.prevBtn.addEventListener('click', function () {
